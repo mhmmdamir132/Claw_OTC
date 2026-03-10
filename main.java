@@ -346,3 +346,90 @@ final class ClawDealValidator {
 
     static void validateTakerAddress(String taker) {
         if (taker == null || !taker.startsWith("0x") || taker.length() != 42)
+            throw new ClawOtcInvalidParamsException("invalid taker address");
+    }
+}
+
+// ─── OTC session state (for UI) ─────────────────────────────────────────────
+
+final class ClawOtcSession {
+    private String connectedContract;
+    private String userAddress;
+    private final List<ClawDeal> myDealsAsMaker = new CopyOnWriteArrayList<>();
+    private final List<ClawDeal> myDealsAsTaker = new CopyOnWriteArrayList<>();
+    private ClawProfile myProfile;
+    private final Map<String, ClawProfile> profileCache = new ConcurrentHashMap<>();
+    private final AtomicLong lastBlockSeen = new AtomicLong(0);
+
+    String getConnectedContract() { return connectedContract; }
+    void setConnectedContract(String a) { this.connectedContract = a; }
+
+    String getUserAddress() { return userAddress; }
+    void setUserAddress(String a) { this.userAddress = a; }
+
+    List<ClawDeal> getMyDealsAsMaker() { return new ArrayList<>(myDealsAsMaker); }
+    void setMyDealsAsMaker(List<ClawDeal> list) {
+        myDealsAsMaker.clear();
+        myDealsAsMaker.addAll(list);
+    }
+
+    List<ClawDeal> getMyDealsAsTaker() { return new ArrayList<>(myDealsAsTaker); }
+    void setMyDealsAsTaker(List<ClawDeal> list) {
+        myDealsAsTaker.clear();
+        myDealsAsTaker.addAll(list);
+    }
+
+    ClawProfile getMyProfile() { return myProfile; }
+    void setMyProfile(ClawProfile p) { this.myProfile = p; }
+
+    void putProfileCache(String addr, ClawProfile p) { profileCache.put(addr, p); }
+    ClawProfile getProfileCache(String addr) { return profileCache.get(addr); }
+
+    long getLastBlockSeen() { return lastBlockSeen.get(); }
+    void setLastBlockSeen(long b) { lastBlockSeen.set(b); }
+}
+
+// ─── OTC service (orchestrates RPC + validation) ─────────────────────────────
+
+final class ClawOtcService {
+    private final ClawOtcRpc rpc;
+    private final ClawOtcSession session;
+
+    ClawOtcService(ClawOtcRpc rpc, ClawOtcSession session) {
+        this.rpc = rpc;
+        this.session = session;
+    }
+
+    ClawDeal openDeal(String taker, BigInteger amountWei, long settleDelayBlocks, String payloadHashHex) {
+        ClawConfigView config = rpc.getConfig();
+        if (config.paused) throw new ClawOtcPausedException();
+        ClawDealValidator.validateTakerAddress(taker);
+        ClawDealValidator.validateAmount(amountWei, config.minDealWei, config.maxDealWei);
+        ClawDealValidator.validateSettleDelay(settleDelayBlocks, config.minSettleDelayBlocks, config.maxSettleDelayBlocks);
+        String txHash = rpc.sendTransaction(session.getUserAddress(), amountWei, new byte[0]);
+        return rpc.getDeal(txHash);
+    }
+
+    void refreshMyDeals() {
+        if (!rpc.isConnected()) return;
+        List<String> makerIds = Collections.emptyList();
+        List<String> takerIds = Collections.emptyList();
+        List<ClawDeal> makerDeals = new ArrayList<>();
+        List<ClawDeal> takerDeals = new ArrayList<>();
+        for (String id : makerIds) makerDeals.add(rpc.getDeal(id));
+        for (String id : takerIds) takerDeals.add(rpc.getDeal(id));
+        session.setMyDealsAsMaker(makerDeals);
+        session.setMyDealsAsTaker(takerDeals);
+    }
+
+    void refreshMyProfile() {
+        if (!rpc.isConnected() || session.getUserAddress() == null) return;
+        session.setMyProfile(rpc.getClawProfile(session.getUserAddress()));
+    }
+
+    ClawGlobalStats getGlobalStats() { return rpc.getGlobalStats(); }
+    ClawConfigView getConfig() { return rpc.getConfig(); }
+    protected ClawOtcRpc getRpc() { return rpc; }
+    protected ClawOtcSession getSession() { return session; }
+}
+
