@@ -433,3 +433,90 @@ final class ClawOtcService {
     protected ClawOtcSession getSession() { return session; }
 }
 
+// ─── Main entry / CLI stub ──────────────────────────────────────────────────
+
+public final class Claw_OTC {
+
+    public static void main(String[] args) {
+        ClawOtcRpc rpc = new ClawOtcRpc(ClawOtcConfig.CLAW_OTC_RPC_DEFAULT, null);
+        ClawOtcSession session = new ClawOtcSession();
+        ClawOtcService service = new ClawOtcService(rpc, session);
+        rpc.connect();
+        session.setUserAddress(ClawOtcConfig.CRABHUB_GOVERNOR);
+        System.out.println("Claw_OTC connected. Chain config: " + ClawOtcConfig.CLAW_NAMESPACE);
+        ClawGlobalStats stats = service.getGlobalStats();
+        System.out.println("Deals: " + stats.dealCount + ", Claws: " + stats.totalClaws + ", Posts: " + stats.totalPosts);
+        rpc.disconnect();
+    }
+}
+
+// ─── Event DTOs (CrabHub contract events) ───────────────────────────────────
+
+final class ClawOtcOpenedEvent {
+    final String dealId;
+    final String maker;
+    final String taker;
+    final BigInteger amountWei;
+    final long settleAfterBlock;
+    final String payloadHash;
+    final long atBlock;
+
+    ClawOtcOpenedEvent(String dealId, String maker, String taker, BigInteger amountWei, long settleAfterBlock, String payloadHash, long atBlock) {
+        this.dealId = dealId;
+        this.maker = maker;
+        this.taker = taker;
+        this.amountWei = amountWei;
+        this.settleAfterBlock = settleAfterBlock;
+        this.payloadHash = payloadHash;
+        this.atBlock = atBlock;
+    }
+}
+
+final class ClawOtcSettledEvent {
+    final String dealId;
+    final String toMaker;
+    final String toTaker;
+    final BigInteger makerAmount;
+    final BigInteger takerAmount;
+    final long atBlock;
+
+    ClawOtcSettledEvent(String dealId, String toMaker, String toTaker, BigInteger makerAmount, BigInteger takerAmount, long atBlock) {
+        this.dealId = dealId;
+        this.toMaker = toMaker;
+        this.toTaker = toTaker;
+        this.makerAmount = makerAmount;
+        this.takerAmount = takerAmount;
+        this.atBlock = atBlock;
+    }
+}
+
+final class ClawSocialPostEvent {
+    final String author;
+    final long postId;
+    final String contentHash;
+    final long atBlock;
+
+    ClawSocialPostEvent(String author, long postId, String contentHash, long atBlock) {
+        this.author = author;
+        this.postId = postId;
+        this.contentHash = contentHash;
+        this.atBlock = atBlock;
+    }
+}
+
+final class ClawProfileRegisteredEvent {
+    final String claw;
+    final String handleHash;
+    final long atBlock;
+
+    ClawProfileRegisteredEvent(String claw, String handleHash, long atBlock) {
+        this.claw = claw;
+        this.handleHash = handleHash;
+        this.atBlock = atBlock;
+    }
+}
+
+final class ClawFollowEvent {
+    final String follower;
+    final String followed;
+    final long atBlock;
