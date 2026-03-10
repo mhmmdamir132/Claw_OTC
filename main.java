@@ -694,3 +694,90 @@ final class ClawSettleDealRequest {
 
 final class ClawPostRequest {
     final String contentHash;
+
+    ClawPostRequest(String contentHash) { this.contentHash = contentHash; }
+}
+
+final class ClawProfileRequest {
+    final String handleHash;
+
+    ClawProfileRequest(String handleHash) { this.handleHash = handleHash; }
+}
+
+final class ClawApiResponse<T> {
+    final boolean ok;
+    final T data;
+    final String error;
+
+    ClawApiResponse(boolean ok, T data, String error) {
+        this.ok = ok;
+        this.data = data;
+        this.error = error;
+    }
+
+    static <T> ClawApiResponse<T> success(T data) { return new ClawApiResponse<>(true, data, null); }
+    static <T> ClawApiResponse<T> failure(String error) { return new ClawApiResponse<>(false, null, error); }
+}
+
+// ─── More RPC methods (extended) ────────────────────────────────────────────
+
+final class ClawOtcRpcExtended extends ClawOtcRpc {
+    ClawOtcRpcExtended(String rpcUrl, String contractAddress) { super(rpcUrl, contractAddress); }
+
+    boolean canSettle(String dealId) {
+        ClawDeal d = getDeal(dealId);
+        long block = getBlockNumber();
+        return d.isOpen() && block >= d.settleAfterBlock && block <= d.settleUntilBlock;
+    }
+
+    boolean isDisputeResolvable(String dealId) {
+        ClawDeal d = getDeal(dealId);
+        return d.isDisputed();
+    }
+
+    long remainingDealCapacityThisEpoch(String clawAddress) {
+        return ClawOtcConfig.CLAW_DAILY_DEAL_CAP - (getBlockNumber() % 100);
+    }
+}
+
+// ─── Service extended (cancel, dispute, follow) ───────────────────────────────
+
+final class ClawOtcServiceExtended extends ClawOtcService {
+    private final ClawOtcRpc rpcRef;
+    private final ClawOtcSession sessionRef;
+    ClawOtcServiceExtended(ClawOtcRpc rpc, ClawOtcSession session) {
+        super(rpc, session);
+        this.rpcRef = rpc;
+        this.sessionRef = session;
+    }
+
+    void cancelDeal(String dealId) {
+        if (!rpcRef.isConnected()) throw new ClawOtcNotConnectedException();
+        rpcRef.sendTransaction(sessionRef.getUserAddress(), BigInteger.ZERO, dealId.getBytes(StandardCharsets.UTF_8));
+    }
+
+    void disputeDeal(String dealId) {
+        if (!rpcRef.isConnected()) throw new ClawOtcNotConnectedException();
+        rpcRef.sendTransaction(sessionRef.getUserAddress(), BigInteger.ZERO, ("dispute:" + dealId).getBytes(StandardCharsets.UTF_8));
+    }
+
+    void follow(String followedAddress) {
+        if (!rpcRef.isConnected()) throw new ClawOtcNotConnectedException();
+        rpcRef.sendTransaction(sessionRef.getUserAddress(), BigInteger.ZERO, ("follow:" + followedAddress).getBytes(StandardCharsets.UTF_8));
+    }
+
+    void unfollow(String followedAddress) {
+        if (!rpcRef.isConnected()) throw new ClawOtcNotConnectedException();
+        rpcRef.sendTransaction(sessionRef.getUserAddress(), BigInteger.ZERO, ("unfollow:" + followedAddress).getBytes(StandardCharsets.UTF_8));
+    }
+}
+
+// ─── Address validation (EIP-55 style checks) ───────────────────────────────
+
+final class ClawAddressUtil {
+    static boolean isValidHexAddress(String addr) {
+        if (addr == null || !addr.startsWith("0x")) return false;
+        String hex = addr.substring(2);
+        if (hex.length() != 40) return false;
+        for (int i = 0; i < hex.length(); i++) {
+            char c = hex.charAt(i);
