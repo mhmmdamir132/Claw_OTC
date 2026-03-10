@@ -172,3 +172,90 @@ final class ClawGlobalStats {
     }
 }
 
+// ─── Config view ─────────────────────────────────────────────────────────────
+
+final class ClawConfigView {
+    final BigInteger minDealWei;
+    final BigInteger maxDealWei;
+    final long minSettleDelayBlocks;
+    final long maxSettleDelayBlocks;
+    final BigInteger accruedFeesWei;
+    final boolean paused;
+
+    ClawConfigView(BigInteger minDealWei, BigInteger maxDealWei, long minSettleDelayBlocks,
+                   long maxSettleDelayBlocks, BigInteger accruedFeesWei, boolean paused) {
+        this.minDealWei = minDealWei;
+        this.maxDealWei = maxDealWei;
+        this.minSettleDelayBlocks = minSettleDelayBlocks;
+        this.maxSettleDelayBlocks = maxSettleDelayBlocks;
+        this.accruedFeesWei = accruedFeesWei;
+        this.paused = paused;
+    }
+}
+
+// ─── RPC / contract call stubs (simulated; replace with Web3j/ethers in real use) ─
+
+final class ClawOtcRpc {
+    private final String rpcUrl;
+    private final String contractAddress;
+    private boolean connected;
+    private long currentBlock;
+
+    ClawOtcRpc(String rpcUrl, String contractAddress) {
+        this.rpcUrl = rpcUrl != null ? rpcUrl : ClawOtcConfig.CLAW_OTC_RPC_DEFAULT;
+        this.contractAddress = contractAddress;
+        this.connected = false;
+        this.currentBlock = 0;
+    }
+
+    void connect() {
+        this.connected = true;
+        this.currentBlock = 18000000L + new Random().nextInt(500000);
+    }
+
+    void disconnect() { this.connected = false; }
+
+    boolean isConnected() { return connected; }
+
+    long getBlockNumber() {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        currentBlock++;
+        return currentBlock;
+    }
+
+    String callView(String method, List<Object> params) {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        return "0x" + Integer.toHexString(method.hashCode() & 0xFFFF) + Long.toHexString(System.currentTimeMillis());
+    }
+
+    String sendTransaction(String from, BigInteger valueWei, byte[] data) {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        return "0x" + UUID.randomUUID().toString().replace("-", "").substring(0, 64);
+    }
+
+    ClawDeal getDeal(String dealId) {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        return new ClawDeal(
+            dealId,
+            "0x" + "a".repeat(40),
+            "0x" + "b".repeat(40),
+            BigInteger.valueOf(1000000000000000000L),
+            currentBlock + 200,
+            currentBlock + 200 + ClawOtcConfig.CLAW_SETTLE_WINDOW_BLOCKS,
+            "0x" + "c".repeat(64),
+            ClawOtcConfig.CLAW_STATUS_OPEN,
+            currentBlock - 50,
+            false,
+            null
+        );
+    }
+
+    ClawProfile getClawProfile(String clawAddress) {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        return new ClawProfile(clawAddress, "0x" + "d".repeat(64), currentBlock - 1000, 5, true);
+    }
+
+    ClawPost getPost(long postId) {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        return new ClawPost("0x" + "e".repeat(40), postId, "0x" + "f".repeat(64), currentBlock - 20);
+    }
