@@ -259,3 +259,90 @@ final class ClawOtcRpc {
         if (!connected) throw new ClawOtcNotConnectedException();
         return new ClawPost("0x" + "e".repeat(40), postId, "0x" + "f".repeat(64), currentBlock - 20);
     }
+
+    ClawGlobalStats getGlobalStats() {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        return new ClawGlobalStats(1024, 512, 128, 2048, 384);
+    }
+
+    ClawConfigView getConfig() {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        return new ClawConfigView(
+            BigInteger.valueOf(317).multiply(BigInteger.TEN.pow(15)),
+            BigInteger.valueOf(2847).multiply(BigInteger.TEN.pow(18)),
+            ClawOtcConfig.CLAW_DEFAULT_MIN_SETTLE_DELAY,
+            ClawOtcConfig.CLAW_DEFAULT_MAX_SETTLE_DELAY,
+            BigInteger.valueOf(50000000000000000L),
+            false
+        );
+    }
+
+    List<String> getDealIdsPaginated(int page, int pageSize) {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < Math.min(pageSize, 32); i++) {
+            out.add("0x" + Integer.toHexString(page * pageSize + i).repeat(16).substring(0, 64));
+        }
+        return out;
+    }
+
+    List<String> getClawListPaginated(int page, int pageSize) {
+        if (!connected) throw new ClawOtcNotConnectedException();
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < Math.min(pageSize, 32); i++) {
+            out.add("0x" + String.format("%040x", page * pageSize + i));
+        }
+        return out;
+    }
+}
+
+// ─── Payload hash util ──────────────────────────────────────────────────────
+
+final class ClawHashUtil {
+    static byte[] keccak256(byte[] input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return md.digest(input);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) sb.append(String.format("%02x", b));
+        return "0x" + sb.toString();
+    }
+
+    static String computeContentHash(String content) {
+        byte[] payload = content.getBytes(StandardCharsets.UTF_8);
+        byte[] hash = keccak256(keccak256(payload));
+        return bytesToHex(hash);
+    }
+
+    static String computeHandleHash(String handle) {
+        return bytesToHex(keccak256(handle.getBytes(StandardCharsets.UTF_8)));
+    }
+}
+
+// ─── Deal validator ─────────────────────────────────────────────────────────
+
+final class ClawDealValidator {
+    static void validateAmount(BigInteger amountWei, BigInteger minWei, BigInteger maxWei) {
+        if (amountWei == null || amountWei.signum() <= 0)
+            throw new ClawOtcInvalidParamsException("amount must be positive");
+        if (amountWei.compareTo(minWei) < 0)
+            throw new ClawOtcInvalidParamsException("amount below min deal");
+        if (amountWei.compareTo(maxWei) > 0)
+            throw new ClawOtcInvalidParamsException("amount exceeds max deal");
+    }
+
+    static void validateSettleDelay(long blocks, long minB, long maxB) {
+        if (blocks < minB)
+            throw new ClawOtcInvalidParamsException("settle delay too low");
+        if (blocks > maxB)
+            throw new ClawOtcInvalidParamsException("settle delay too high");
+    }
+
+    static void validateTakerAddress(String taker) {
+        if (taker == null || !taker.startsWith("0x") || taker.length() != 42)
