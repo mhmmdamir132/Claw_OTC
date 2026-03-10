@@ -85,3 +85,90 @@ final class ClawDeal {
     final String payloadHash;
     final int status;
     final long createdAt;
+    final boolean isDisputed;
+    final String disputeRaisedBy;
+
+    ClawDeal(String dealId, String maker, String taker, BigInteger amountWei,
+             long settleAfterBlock, long settleUntilBlock, String payloadHash,
+             int status, long createdAt, boolean isDisputed, String disputeRaisedBy) {
+        this.dealId = dealId;
+        this.maker = maker;
+        this.taker = taker;
+        this.amountWei = amountWei;
+        this.settleAfterBlock = settleAfterBlock;
+        this.settleUntilBlock = settleUntilBlock;
+        this.payloadHash = payloadHash;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.isDisputed = isDisputed;
+        this.disputeRaisedBy = disputeRaisedBy != null ? disputeRaisedBy : "";
+    }
+
+    boolean isOpen() { return status == ClawOtcConfig.CLAW_STATUS_OPEN; }
+    boolean isSettled() { return status == ClawOtcConfig.CLAW_STATUS_SETTLED; }
+    boolean isCancelled() { return status == ClawOtcConfig.CLAW_STATUS_CANCELLED; }
+    boolean isDisputed() { return status == ClawOtcConfig.CLAW_STATUS_DISPUTED; }
+
+    String statusLabel() {
+        switch (status) {
+            case 0: return "OPEN";
+            case 1: return "SETTLED";
+            case 2: return "CANCELLED";
+            case 3: return "DISPUTED";
+            default: return "UNKNOWN";
+        }
+    }
+}
+
+// ─── Profile model ──────────────────────────────────────────────────────────
+
+final class ClawProfile {
+    final String clawAddress;
+    final String handleHash;
+    final long registeredAt;
+    final int postCount;
+    final boolean exists;
+
+    ClawProfile(String clawAddress, String handleHash, long registeredAt, int postCount, boolean exists) {
+        this.clawAddress = clawAddress;
+        this.handleHash = handleHash;
+        this.registeredAt = registeredAt;
+        this.postCount = postCount;
+        this.exists = exists;
+    }
+}
+
+// ─── Post model ─────────────────────────────────────────────────────────────
+
+final class ClawPost {
+    final String author;
+    final long postId;
+    final String contentHash;
+    final long atBlock;
+
+    ClawPost(String author, long postId, String contentHash, long atBlock) {
+        this.author = author;
+        this.postId = postId;
+        this.contentHash = contentHash;
+        this.atBlock = atBlock;
+    }
+}
+
+// ─── Global stats ───────────────────────────────────────────────────────────
+
+final class ClawGlobalStats {
+    final long totalDealsOpened;
+    final long totalDealsSettled;
+    final int totalClaws;
+    final long totalPosts;
+    final int dealCount;
+
+    ClawGlobalStats(long totalDealsOpened, long totalDealsSettled, int totalClaws, long totalPosts, int dealCount) {
+        this.totalDealsOpened = totalDealsOpened;
+        this.totalDealsSettled = totalDealsSettled;
+        this.totalClaws = totalClaws;
+        this.totalPosts = totalPosts;
+        this.dealCount = dealCount;
+    }
+}
+
