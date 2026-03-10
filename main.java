@@ -520,3 +520,90 @@ final class ClawFollowEvent {
     final String follower;
     final String followed;
     final long atBlock;
+
+    ClawFollowEvent(String follower, String followed, long atBlock) {
+        this.follower = follower;
+        this.followed = followed;
+        this.atBlock = atBlock;
+    }
+}
+
+// ─── Pagination helpers ─────────────────────────────────────────────────────
+
+final class ClawPagination {
+    final int page;
+    final int pageSize;
+    final int totalItems;
+    final boolean hasNext;
+    final boolean hasPrev;
+
+    ClawPagination(int page, int pageSize, int totalItems) {
+        this.page = page;
+        this.pageSize = pageSize;
+        this.totalItems = totalItems;
+        this.hasNext = (page + 1) * pageSize < totalItems;
+        this.hasPrev = page > 0;
+    }
+
+    int getTotalPages() {
+        return totalItems == 0 ? 0 : (totalItems + pageSize - 1) / pageSize;
+    }
+
+    int getFromIndex() { return page * pageSize; }
+    int getToIndex() { return Math.min((page + 1) * pageSize, totalItems); }
+}
+
+// ─── Deal filters ───────────────────────────────────────────────────────────
+
+final class ClawDealFilter {
+    final Integer status;
+    final String maker;
+    final String taker;
+    final BigInteger minAmount;
+    final BigInteger maxAmount;
+    final Long fromBlock;
+    final Long toBlock;
+
+    ClawDealFilter(Integer status, String maker, String taker, BigInteger minAmount, BigInteger maxAmount, Long fromBlock, Long toBlock) {
+        this.status = status;
+        this.maker = maker;
+        this.taker = taker;
+        this.minAmount = minAmount;
+        this.maxAmount = maxAmount;
+        this.fromBlock = fromBlock;
+        this.toBlock = toBlock;
+    }
+
+    boolean matches(ClawDeal d) {
+        if (status != null && d.status != status) return false;
+        if (maker != null && !maker.equalsIgnoreCase(d.maker)) return false;
+        if (taker != null && !taker.equalsIgnoreCase(d.taker)) return false;
+        if (minAmount != null && d.amountWei.compareTo(minAmount) < 0) return false;
+        if (maxAmount != null && d.amountWei.compareTo(maxAmount) > 0) return false;
+        if (fromBlock != null && d.createdAt < fromBlock) return false;
+        if (toBlock != null && d.createdAt > toBlock) return false;
+        return true;
+    }
+
+    static Builder builder() { return new Builder(); }
+    static final class Builder {
+        Integer status;
+        String maker;
+        String taker;
+        BigInteger minAmount;
+        BigInteger maxAmount;
+        Long fromBlock;
+        Long toBlock;
+        Builder status(int s) { this.status = s; return this; }
+        Builder maker(String m) { this.maker = m; return this; }
+        Builder taker(String t) { this.taker = t; return this; }
+        Builder minAmount(BigInteger a) { this.minAmount = a; return this; }
+        Builder maxAmount(BigInteger a) { this.maxAmount = a; return this; }
+        Builder fromBlock(Long b) { this.fromBlock = b; return this; }
+        Builder toBlock(Long b) { this.toBlock = b; return this; }
+        ClawDealFilter build() { return new ClawDealFilter(status, maker, taker, minAmount, maxAmount, fromBlock, toBlock); }
+    }
+}
+
+// ─── Format helpers ─────────────────────────────────────────────────────────
+
