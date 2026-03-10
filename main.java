@@ -607,3 +607,90 @@ final class ClawDealFilter {
 
 // ─── Format helpers ─────────────────────────────────────────────────────────
 
+final class ClawFormatUtil {
+    static String weiToEther(BigInteger wei) {
+        if (wei == null) return "0";
+        BigInteger div = BigInteger.TEN.pow(18);
+        BigInteger[] qr = wei.divideAndRemainder(div);
+        return qr[0].toString() + "." + String.format("%018d", qr[1].abs()).substring(0, 6);
+    }
+
+    static String shortAddress(String addr) {
+        if (addr == null || addr.length() < 10) return addr;
+        return addr.substring(0, 6) + "..." + addr.substring(addr.length() - 4);
+    }
+
+    static String shortHash(String hash) {
+        if (hash == null || hash.length() < 16) return hash;
+        return hash.substring(0, 10) + "..." + hash.substring(hash.length() - 6);
+    }
+}
+
+// ─── Cache for deals (in-memory) ─────────────────────────────────────────────
+
+final class ClawDealCache {
+    private final Map<String, ClawDeal> byId = new ConcurrentHashMap<>();
+    private final List<ClawDeal> all = new CopyOnWriteArrayList<>();
+    private final int maxSize;
+    private long lastRefresh;
+
+    ClawDealCache(int maxSize) { this.maxSize = maxSize; }
+
+    void put(ClawDeal d) {
+        byId.put(d.dealId, d);
+        all.removeIf(x -> x.dealId.equals(d.dealId));
+        all.add(0, d);
+        while (all.size() > maxSize) {
+            ClawDeal removed = all.remove(all.size() - 1);
+            byId.remove(removed.dealId);
+        }
+    }
+
+    void putAll(List<ClawDeal> list) {
+        for (ClawDeal d : list) put(d);
+    }
+
+    ClawDeal get(String dealId) { return byId.get(dealId); }
+
+    List<ClawDeal> list(ClawDealFilter filter, int limit) {
+        return all.stream()
+            .filter(d -> filter == null || filter.matches(d))
+            .limit(limit)
+            .collect(Collectors.toList());
+    }
+
+    void setLastRefresh(long t) { lastRefresh = t; }
+    long getLastRefresh() { return lastRefresh; }
+    int size() { return all.size(); }
+}
+
+// ─── API request/response DTOs (for REST if used) ────────────────────────────
+
+final class ClawOpenDealRequest {
+    final String taker;
+    final String amountWei;
+    final long settleDelayBlocks;
+    final String payloadHash;
+
+    ClawOpenDealRequest(String taker, String amountWei, long settleDelayBlocks, String payloadHash) {
+        this.taker = taker;
+        this.amountWei = amountWei;
+        this.settleDelayBlocks = settleDelayBlocks;
+        this.payloadHash = payloadHash;
+    }
+}
+
+final class ClawSettleDealRequest {
+    final String dealId;
+    final String makerAmountWei;
+    final String takerAmountWei;
+
+    ClawSettleDealRequest(String dealId, String makerAmountWei, String takerAmountWei) {
+        this.dealId = dealId;
+        this.makerAmountWei = makerAmountWei;
+        this.takerAmountWei = takerAmountWei;
+    }
+}
+
+final class ClawPostRequest {
+    final String contentHash;
