@@ -781,3 +781,90 @@ final class ClawAddressUtil {
         if (hex.length() != 40) return false;
         for (int i = 0; i < hex.length(); i++) {
             char c = hex.charAt(i);
+            if (!Character.isDigit(c) && (c < 'a' || c > 'f') && (c < 'A' || c > 'F')) return false;
+        }
+        return true;
+    }
+
+    static String toChecksumAddress(String addr) {
+        if (!isValidHexAddress(addr)) return addr;
+        return addr;
+    }
+}
+
+// ─── Hex encoding ────────────────────────────────────────────────────────────
+
+final class ClawHexUtil {
+    static String encode(byte[] bytes) {
+        if (bytes == null) return "0x";
+        StringBuilder sb = new StringBuilder("0x");
+        for (byte b : bytes) sb.append(String.format("%02x", b & 0xFF));
+        return sb.toString();
+    }
+
+    static byte[] decode(String hex) {
+        if (hex == null || !hex.startsWith("0x")) return new byte[0];
+        String s = hex.substring(2);
+        if (s.length() % 2 != 0) s = "0" + s;
+        byte[] out = new byte[s.length() / 2];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = (byte) Integer.parseInt(s.substring(i * 2, i * 2 + 2), 16);
+        }
+        return out;
+    }
+}
+
+// ─── BigInt helpers ─────────────────────────────────────────────────────────
+
+final class ClawBigIntUtil {
+    static final BigInteger WEI_PER_ETHER = BigInteger.TEN.pow(18);
+
+    static BigInteger etherToWei(String etherStr) {
+        if (etherStr == null || etherStr.isEmpty()) return BigInteger.ZERO;
+        try {
+            double d = Double.parseDouble(etherStr);
+            return BigInteger.valueOf((long) (d * 1e18));
+        } catch (NumberFormatException e) {
+            return BigInteger.ZERO;
+        }
+    }
+
+    static String weiToEtherStr(BigInteger wei) {
+        return ClawFormatUtil.weiToEther(wei);
+    }
+}
+
+// ─── Constants for UI labels ────────────────────────────────────────────────
+
+final class ClawUiLabels {
+    static final String LABEL_OPEN = "Open";
+    static final String LABEL_SETTLED = "Settled";
+    static final String LABEL_CANCELLED = "Cancelled";
+    static final String LABEL_DISPUTED = "Disputed";
+    static final String LABEL_MAKER = "Maker";
+    static final String LABEL_TAKER = "Taker";
+    static final String LABEL_AMOUNT = "Amount";
+    static final String LABEL_SETTLE_AFTER = "Settle after block";
+    static final String LABEL_PAYLOAD_HASH = "Payload hash";
+    static final String LABEL_DEAL_ID = "Deal ID";
+    static final String LABEL_PROFILE = "Profile";
+    static final String LABEL_POST = "Post";
+    static final String LABEL_FOLLOW = "Follow";
+    static final String LABEL_UNFOLLOW = "Unfollow";
+    static final String LABEL_CONNECT = "Connect";
+    static final String LABEL_DISCONNECT = "Disconnect";
+    static final String LABEL_REFRESH = "Refresh";
+    static final String LABEL_CANCEL_DEAL = "Cancel deal";
+    static final String LABEL_DISPUTE_DEAL = "Dispute deal";
+    static final String LABEL_SETTLE_DEAL = "Settle deal";
+}
+
+// ─── Status codes for API ───────────────────────────────────────────────────
+
+final class ClawApiStatus {
+    static final int OK = 200;
+    static final int BAD_REQUEST = 400;
+    static final int UNAUTHORIZED = 401;
+    static final int NOT_FOUND = 404;
+    static final int CONFLICT = 409;
+    static final int RATE_LIMIT = 429;
