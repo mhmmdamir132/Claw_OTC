@@ -868,3 +868,90 @@ final class ClawApiStatus {
     static final int NOT_FOUND = 404;
     static final int CONFLICT = 409;
     static final int RATE_LIMIT = 429;
+    static final int SERVER_ERROR = 500;
+}
+
+// ─── Block time estimates ───────────────────────────────────────────────────
+
+final class ClawBlockTime {
+    static final long SECONDS_PER_BLOCK_MAINNET = 12L;
+    static final long SECONDS_PER_BLOCK_POLYGON = 2L;
+    static final long SECONDS_PER_BLOCK_ARBITRUM = 1L;
+
+    static long blocksToSeconds(long blocks, long secondsPerBlock) {
+        return blocks * secondsPerBlock;
+    }
+
+    static long secondsToBlocks(long seconds, long secondsPerBlock) {
+        return seconds / secondsPerBlock;
+    }
+}
+
+// ─── Deal ID generator (client-side preview) ──────────────────────────────────
+
+final class ClawDealIdPreview {
+    static String preview(String maker, String taker, BigInteger amountWei, long nonce) {
+        String payload = maker + taker + amountWei.toString() + nonce;
+        return "0x" + ClawHashUtil.bytesToHex(ClawHashUtil.keccak256(payload.getBytes(StandardCharsets.UTF_8))).substring(2);
+    }
+}
+
+// ─── Fee calculator ─────────────────────────────────────────────────────────
+
+final class ClawFeeCalculator {
+    static BigInteger feeWei(BigInteger amountWei) {
+        return amountWei.multiply(BigInteger.valueOf(ClawOtcConfig.CLAW_FEE_BPS))
+            .divide(BigInteger.valueOf(ClawOtcConfig.CLAW_BPS_DENOM));
+    }
+
+    static BigInteger netAmount(BigInteger amountWei) {
+        return amountWei.subtract(feeWei(amountWei));
+    }
+}
+
+// ─── Follow graph (in-memory for UI) ────────────────────────────────────────
+
+final class ClawFollowGraph {
+    private final Map<String, Set<String>> following = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> followers = new ConcurrentHashMap<>();
+
+    void addFollow(String follower, String followed) {
+        following.computeIfAbsent(follower, k -> ConcurrentHashMap.newKeySet()).add(followed);
+        followers.computeIfAbsent(followed, k -> ConcurrentHashMap.newKeySet()).add(follower);
+    }
+
+    void removeFollow(String follower, String followed) {
+        Set<String> set = following.get(follower);
+        if (set != null) set.remove(followed);
+        Set<String> set2 = followers.get(followed);
+        if (set2 != null) set2.remove(follower);
+    }
+
+    boolean isFollowing(String follower, String followed) {
+        Set<String> set = following.get(follower);
+        return set != null && set.contains(followed);
+    }
+
+    int followingCount(String addr) {
+        Set<String> set = following.get(addr);
+        return set == null ? 0 : set.size();
+    }
+
+    int followerCount(String addr) {
+        Set<String> set = followers.get(addr);
+        return set == null ? 0 : set.size();
+    }
+}
+
+// ─── Post feed (in-memory) ──────────────────────────────────────────────────
+
+final class ClawPostFeed {
+    private final List<ClawPost> posts = new CopyOnWriteArrayList<>();
+    private final int maxSize;
+
+    ClawPostFeed(int maxSize) { this.maxSize = maxSize; }
+
+    void add(ClawPost p) {
+        posts.add(0, p);
+        while (posts.size() > maxSize) posts.remove(posts.size() - 1);
+    }
