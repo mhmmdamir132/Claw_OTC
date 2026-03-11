@@ -1651,3 +1651,76 @@ final class ClawDealSummaryList {
 final class ClawDealFilterBuilder {
     private Integer status;
     private String maker;
+    private String taker;
+    ClawDealFilterBuilder status(int s) { this.status = s; return this; }
+    ClawDealFilterBuilder maker(String m) { this.maker = m; return this; }
+    ClawDealFilterBuilder taker(String t) { this.taker = t; return this; }
+    ClawDealFilter build() { return ClawDealFilter.builder().status(status).maker(maker).taker(taker).build(); }
+}
+
+final class ClawAppInfo {
+    static String name() { return "Claw_OTC"; }
+    static String description() { return "CrabHub OTC and social client"; }
+}
+
+final class ClawContractInfo {
+    static String namespace() { return ClawOtcConfig.CLAW_NAMESPACE; }
+}
+
+final class ClawBuildInfo {
+    static String version() { return ClawVersion.VERSION; }
+    static String build() { return ClawVersion.BUILD; }
+}
+
+final class ClawChainIds {
+    static long mainnet() { return ClawOtcConfig.CLAW_CHAIN_ID_MAINNET; }
+    static long sepolia() { return ClawOtcConfig.CLAW_CHAIN_ID_SEPOLIA; }
+}
+
+final class ClawDefaultSettleDelays {
+    static long min() { return ClawOtcConfig.CLAW_DEFAULT_MIN_SETTLE_DELAY; }
+    static long max() { return ClawOtcConfig.CLAW_DEFAULT_MAX_SETTLE_DELAY; }
+}
+
+final class ClawDefaultDealWei {
+    static BigInteger minWei() {
+        return BigInteger.valueOf(ClawOtcConfig.CLAW_DEFAULT_MIN_DEAL_WEI_SCALE).multiply(BigInteger.TEN.pow(15));
+    }
+    static BigInteger maxWei() {
+        return BigInteger.valueOf(ClawOtcConfig.CLAW_DEFAULT_MAX_DEAL_WEI_SCALE).multiply(BigInteger.TEN.pow(18));
+    }
+}
+
+final class ClawOtcExtendMax {
+    static int blocks() { return ClawOtcConfig.CLAW_OTC_EXTEND_SETTLE_MAX; }
+}
+
+final class ClawDailyCap {
+    static int perClaw() { return ClawOtcConfig.CLAW_DAILY_DEAL_CAP; }
+}
+
+final class ClawRpcDefaults {
+    static String rpc() { return ClawOtcConfig.CLAW_OTC_RPC_DEFAULT; }
+    static String ws() { return ClawOtcConfig.CLAW_OTC_WS_DEFAULT; }
+}
+
+final class ClawOtcRevision { static int get() { return 1; } }
+final class ClawMaxDealsConstant { static int get() { return ClawOtcConfig.CLAW_MAX_DEALS; } }
+final class ClawMaxPostsConstant { static int get() { return ClawOtcConfig.CLAW_MAX_POSTS_PER_CLAW; } }
+final class ClawMaxFollowsConstant { static int get() { return ClawOtcConfig.CLAW_MAX_FOLLOWS; } }
+final class ClawViewBatchConstant { static int get() { return ClawOtcConfig.CLAW_VIEW_BATCH; } }
+final class ClawBpsDenomConstant { static int get() { return ClawOtcConfig.CLAW_BPS_DENOM; } }
+final class ClawFeeBpsConstant { static int get() { return ClawOtcConfig.CLAW_FEE_BPS; } }
+final class ClawDisputeWindowConstant { static int get() { return ClawOtcConfig.CLAW_DISPUTE_WINDOW_BLOCKS; } }
+final class ClawEpochBlocksConstant { static int get() { return ClawOtcConfig.CLAW_EPOCH_BLOCKS; } }
+final class ClawSettleWindowConstant { static int get() { return ClawOtcConfig.CLAW_SETTLE_WINDOW_BLOCKS; } }
+
+final class ClawMinPostIntervalConstant { static int get() { return ClawOtcConfig.CLAW_MIN_POST_INTERVAL_BLOCKS; } }
+final class ClawProfileEditCooldownConstant { static int get() { return ClawOtcConfig.CLAW_PROFILE_EDIT_COOLDOWN_BLOCKS; } }
+final class ClawOtcExtendMaxConstant { static int get() { return ClawOtcConfig.CLAW_OTC_EXTEND_SETTLE_MAX; } }
+final class ClawDailyDealCapConstant { static int get() { return ClawOtcConfig.CLAW_DAILY_DEAL_CAP; } }
+
+final class ClawAppName { static String get() { return "Claw_OTC"; } }
+final class ClawNamespace { static String get() { return ClawOtcConfig.CLAW_NAMESPACE; } }
+final class ClawChainMainnet { static long get() { return ClawOtcConfig.CLAW_CHAIN_ID_MAINNET; } }
+final class ClawChainSepolia { static long get() { return ClawOtcConfig.CLAW_CHAIN_ID_SEPOLIA; } }
