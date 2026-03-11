@@ -1303,3 +1303,90 @@ final class ClawSettleRequestBuilder {
     private BigInteger takerAmountWei;
 
     ClawSettleRequestBuilder dealId(String id) { this.dealId = id; return this; }
+    ClawSettleRequestBuilder makerAmount(BigInteger wei) { this.makerAmountWei = wei; return this; }
+    ClawSettleRequestBuilder takerAmount(BigInteger wei) { this.takerAmountWei = wei; return this; }
+    ClawSettleDealRequest build() {
+        if (dealId == null || makerAmountWei == null || takerAmountWei == null)
+            throw new ClawOtcInvalidParamsException("dealId, makerAmount, takerAmount required");
+        return new ClawSettleDealRequest(dealId, makerAmountWei.toString(), takerAmountWei.toString());
+    }
+}
+
+// ─── Open deal request builder ───────────────────────────────────────────────
+
+final class ClawOpenDealRequestBuilder {
+    private String taker;
+    private BigInteger amountWei;
+    private long settleDelayBlocks;
+    private String payloadHash;
+
+    ClawOpenDealRequestBuilder taker(String t) { this.taker = t; return this; }
+    ClawOpenDealRequestBuilder amountWei(BigInteger a) { this.amountWei = a; return this; }
+    ClawOpenDealRequestBuilder settleDelayBlocks(long b) { this.settleDelayBlocks = b; return this; }
+    ClawOpenDealRequestBuilder payloadHash(String h) { this.payloadHash = h; return this; }
+    ClawOpenDealRequest build() {
+        if (taker == null || amountWei == null || payloadHash == null)
+            throw new ClawOtcInvalidParamsException("taker, amountWei, payloadHash required");
+        return new ClawOpenDealRequest(taker, amountWei.toString(), settleDelayBlocks, payloadHash);
+    }
+}
+
+// ─── Batch deal loader ──────────────────────────────────────────────────────
+
+final class ClawBatchDealLoader {
+    private final ClawOtcRpc rpc;
+    private final ClawDealCache cache;
+
+    ClawBatchDealLoader(ClawOtcRpc rpc, ClawDealCache cache) { this.rpc = rpc; this.cache = cache; }
+
+    List<ClawDeal> loadPage(int page, int pageSize) {
+        List<String> ids = rpc.getDealIdsPaginated(page, pageSize);
+        List<ClawDeal> deals = new ArrayList<>();
+        for (String id : ids) {
+            ClawDeal d = rpc.getDeal(id);
+            deals.add(d);
+            cache.put(d);
+        }
+        return deals;
+    }
+}
+
+// ─── Notification types (for UI) ─────────────────────────────────────────────
+
+final class ClawNotification {
+    final String type;
+    final String message;
+    final long timestamp;
+
+    ClawNotification(String type, String message) {
+        this.type = type;
+        this.message = message;
+        this.timestamp = System.currentTimeMillis();
+    }
+    static ClawNotification success(String msg) { return new ClawNotification("success", msg); }
+    static ClawNotification error(String msg) { return new ClawNotification("error", msg); }
+    static ClawNotification info(String msg) { return new ClawNotification("info", msg); }
+}
+
+// ─── Deal status display ─────────────────────────────────────────────────────
+
+final class ClawDealStatusDisplay {
+    final String label;
+    final String color;
+    final boolean canSettle;
+    final boolean canCancel;
+    final boolean canDispute;
+
+    ClawDealStatusDisplay(String label, String color, boolean canSettle, boolean canCancel, boolean canDispute) {
+        this.label = label;
+        this.color = color;
+        this.canSettle = canSettle;
+        this.canCancel = canCancel;
+        this.canDispute = canDispute;
+    }
+    static ClawDealStatusDisplay forStatus(int status) {
+        switch (status) {
+            case 0: return new ClawDealStatusDisplay("Open", "blue", true, true, true);
+            case 1: return new ClawDealStatusDisplay("Settled", "green", false, false, false);
+            case 2: return new ClawDealStatusDisplay("Cancelled", "gray", false, false, false);
+            case 3: return new ClawDealStatusDisplay("Disputed", "orange", false, false, false);
