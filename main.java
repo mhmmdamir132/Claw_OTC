@@ -1564,3 +1564,90 @@ final class ClawContractConstants {
 
 final class ClawEventNames {
     static final String OTC_OPENED = "ClawOtcOpened";
+    static final String OTC_SETTLED = "ClawOtcSettled";
+    static final String OTC_CANCELLED = "ClawOtcCancelled";
+    static final String OTC_DISPUTED = "ClawOtcDisputed";
+    static final String SOCIAL_POST = "ClawSocialPost";
+    static final String PROFILE_REGISTERED = "ClawProfileRegistered";
+    static final String FOLLOW = "ClawFollow";
+    static final String UNFOLLOW = "ClawUnfollow";
+}
+
+final class ClawErrorMessages {
+    static final String NOT_CONNECTED_MSG = "Not connected to RPC. Please connect first.";
+    static final String DEAL_NOT_FOUND_MSG = "Deal not found.";
+    static final String INVALID_AMOUNT_MSG = "Invalid amount.";
+    static final String PAUSED_MSG = "Platform is paused.";
+}
+
+final class ClawSuccessMessages {
+    static final String DEAL_OPENED = "Deal opened successfully.";
+    static final String DEAL_SETTLED = "Deal settled successfully.";
+    static final String DEAL_CANCELLED = "Deal cancelled.";
+    static final String PROFILE_REGISTERED = "Profile registered.";
+    static final String POST_CREATED = "Post created.";
+}
+
+final class ClawEnvKeys {
+    static final String RPC_URL = "CLAW_OTC_RPC_URL";
+    static final String CONTRACT = "CRABHUB_CONTRACT_ADDRESS";
+    static final String CHAIN_ID = "CLAW_CHAIN_ID";
+}
+
+final class ClawDefaultRpcUrls {
+    static final String MAINNET = "https://eth.llamarpc.com";
+    static final String SEPOLIA = "https://rpc.sepolia.org";
+}
+
+final class ClawBpsUtil {
+    static int feeBps() { return ClawOtcConfig.CLAW_FEE_BPS; }
+    static int bpsDenom() { return ClawOtcConfig.CLAW_BPS_DENOM; }
+}
+
+final class ClawViewBatchUtil {
+    static int maxBatch() { return ClawOtcConfig.CLAW_VIEW_BATCH; }
+}
+
+final class ClawDealLimitUtil {
+    static int maxDealsGlobal() { return ClawOtcConfig.CLAW_MAX_DEALS; }
+    static int maxPostsPerClaw() { return ClawOtcConfig.CLAW_MAX_POSTS_PER_CLAW; }
+    static int maxFollows() { return ClawOtcConfig.CLAW_MAX_FOLLOWS; }
+}
+
+final class ClawStatusCodes {
+    static int open() { return ClawOtcConfig.CLAW_STATUS_OPEN; }
+    static int settled() { return ClawOtcConfig.CLAW_STATUS_SETTLED; }
+    static int cancelled() { return ClawOtcConfig.CLAW_STATUS_CANCELLED; }
+    static int disputed() { return ClawOtcConfig.CLAW_STATUS_DISPUTED; }
+}
+
+final class ClawBlockConstants {
+    static long disputeWindowBlocks() { return ClawOtcConfig.CLAW_DISPUTE_WINDOW_BLOCKS; }
+    static long minPostIntervalBlocks() { return ClawOtcConfig.CLAW_MIN_POST_INTERVAL_BLOCKS; }
+    static long profileEditCooldownBlocks() { return ClawOtcConfig.CLAW_PROFILE_EDIT_COOLDOWN_BLOCKS; }
+    static long settleWindowBlocks() { return ClawOtcConfig.CLAW_SETTLE_WINDOW_BLOCKS; }
+    static long epochBlocks() { return ClawOtcConfig.CLAW_EPOCH_BLOCKS; }
+}
+
+final class ClawTreasuryAddress {
+    static String get() { return ClawOtcConfig.CRABHUB_TREASURY; }
+}
+
+final class ClawGovernorAddress {
+    static String get() { return ClawOtcConfig.CRABHUB_GOVERNOR; }
+}
+
+final class ClawEscrowKeeperAddress {
+    static String get() { return ClawOtcConfig.CRABHUB_ESCROW_KEEPER; }
+}
+
+final class ClawDealSummaryList {
+    private final List<ClawDealSummary> list = new ArrayList<>();
+    void add(ClawDeal d) { list.add(new ClawDealSummary(d)); }
+    List<ClawDealSummary> getList() { return new ArrayList<>(list); }
+    int size() { return list.size(); }
+}
+
+final class ClawDealFilterBuilder {
+    private Integer status;
+    private String maker;
