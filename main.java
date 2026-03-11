@@ -1216,3 +1216,90 @@ final class ClawValidationResult {
     ClawValidationResult(boolean valid, String message) { this.valid = valid; this.message = message; }
     static ClawValidationResult ok() { return new ClawValidationResult(true, null); }
     static ClawValidationResult fail(String msg) { return new ClawValidationResult(false, msg); }
+}
+
+// ─── Input validators for UI ─────────────────────────────────────────────────
+
+final class ClawInputValidator {
+    static ClawValidationResult validateAddress(String addr) {
+        if (addr == null || addr.isEmpty()) return ClawValidationResult.fail("Address required");
+        if (!ClawAddressUtil.isValidHexAddress(addr)) return ClawValidationResult.fail("Invalid address");
+        return ClawValidationResult.ok();
+    }
+    static ClawValidationResult validateAmount(String amountStr, BigInteger min, BigInteger max) {
+        if (amountStr == null || amountStr.isEmpty()) return ClawValidationResult.fail("Amount required");
+        try {
+            BigInteger wei = ClawBigIntUtil.etherToWei(amountStr);
+            if (wei.compareTo(min) < 0) return ClawValidationResult.fail("Below minimum");
+            if (wei.compareTo(max) > 0) return ClawValidationResult.fail("Above maximum");
+            return ClawValidationResult.ok();
+        } catch (Exception e) {
+            return ClawValidationResult.fail("Invalid amount");
+        }
+    }
+    static ClawValidationResult validateSettleDelay(long blocks) {
+        if (blocks < ClawOtcConfig.CLAW_DEFAULT_MIN_SETTLE_DELAY) return ClawValidationResult.fail("Settle delay too low");
+        if (blocks > ClawOtcConfig.CLAW_DEFAULT_MAX_SETTLE_DELAY) return ClawValidationResult.fail("Settle delay too high");
+        return ClawValidationResult.ok();
+    }
+}
+
+// ─── Timer for refresh ──────────────────────────────────────────────────────
+
+final class ClawRefreshTimer {
+    private long lastRefresh;
+    private final long intervalMs;
+
+    ClawRefreshTimer(long intervalMs) { this.intervalMs = intervalMs; this.lastRefresh = 0; }
+    boolean shouldRefresh() { return System.currentTimeMillis() - lastRefresh >= intervalMs; }
+    void markRefreshed() { lastRefresh = System.currentTimeMillis(); }
+}
+
+// ─── Error codes ─────────────────────────────────────────────────────────────
+
+final class ClawErrorCodes {
+    static final String NOT_CONNECTED = "NOT_CONNECTED";
+    static final String DEAL_NOT_FOUND = "DEAL_NOT_FOUND";
+    static final String INVALID_PARAMS = "INVALID_PARAMS";
+    static final String PAUSED = "PAUSED";
+    static final String PROFILE_NOT_FOUND = "PROFILE_NOT_FOUND";
+    static final String RPC_ERROR = "RPC_ERROR";
+    static final String TX_FAILED = "TX_FAILED";
+}
+
+// ─── Local storage keys (for browser/Electron) ───────────────────────────────
+
+final class ClawStorageKeys {
+    static final String KEY_CONTRACT = "claw_otc_contract";
+    static final String KEY_USER_ADDRESS = "claw_otc_user_address";
+    static final String KEY_RPC_URL = "claw_otc_rpc_url";
+    static final String KEY_CHAIN_ID = "claw_otc_chain_id";
+}
+
+// ─── Defaults ───────────────────────────────────────────────────────────────
+
+final class ClawDefaults {
+    static final int PAGE_SIZE_DEALS = 20;
+    static final int PAGE_SIZE_CLAWS = 24;
+    static final int PAGE_SIZE_POSTS = 30;
+    static final long REFRESH_INTERVAL_MS = 30000;
+    static final int DEAL_CACHE_MAX = 200;
+    static final long PROFILE_CACHE_TTL_MS = 60000;
+}
+
+// ─── Version info ───────────────────────────────────────────────────────────
+
+final class ClawVersion {
+    static final String VERSION = "1.0.0";
+    static final String BUILD = "claw-otc-20250130";
+    static final String NAMESPACE = ClawOtcConfig.CLAW_NAMESPACE;
+}
+
+// ─── Settle request builder ──────────────────────────────────────────────────
+
+final class ClawSettleRequestBuilder {
+    private String dealId;
+    private BigInteger makerAmountWei;
+    private BigInteger takerAmountWei;
+
+    ClawSettleRequestBuilder dealId(String id) { this.dealId = id; return this; }
