@@ -1129,3 +1129,90 @@ final class ClawProfileCacheWithTtl {
 
     ClawProfile get(String addr) {
         Long exp = expiry.get(addr);
+        if (exp != null && System.currentTimeMillis() > exp) {
+            cache.remove(addr);
+            expiry.remove(addr);
+            return null;
+        }
+        return cache.get(addr);
+    }
+
+    void clear() { cache.clear(); expiry.clear(); }
+}
+
+// ─── JSON-style string builder (no external deps) ─────────────────────────────
+
+final class ClawJsonBuilder {
+    private final StringBuilder sb = new StringBuilder();
+    private boolean first = true;
+
+    ClawJsonBuilder object() { sb.append("{"); first = true; return this; }
+    ClawJsonBuilder endObject() { sb.append("}"); return this; }
+    ClawJsonBuilder array() { sb.append("["); first = true; return this; }
+    ClawJsonBuilder endArray() { sb.append("]"); return this; }
+    ClawJsonBuilder key(String k) { if (!first) sb.append(","); sb.append("\"").append(escape(k)).append("\":"); first = false; return this; }
+    ClawJsonBuilder value(String v) { sb.append("\"").append(escape(v)).append("\""); return this; }
+    ClawJsonBuilder value(long v) { sb.append(v); return this; }
+    ClawJsonBuilder value(boolean v) { sb.append(v); return this; }
+    static String escape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+    @Override
+    public String toString() { return sb.toString(); }
+}
+
+// ─── Deal summary for list view ──────────────────────────────────────────────
+
+final class ClawDealSummary {
+    final String dealId;
+    final String makerShort;
+    final String takerShort;
+    final String amountStr;
+    final String status;
+    final long settleAfterBlock;
+
+    ClawDealSummary(ClawDeal d) {
+        this.dealId = d.dealId;
+        this.makerShort = ClawFormatUtil.shortAddress(d.maker);
+        this.takerShort = ClawFormatUtil.shortAddress(d.taker);
+        this.amountStr = ClawFormatUtil.weiToEther(d.amountWei);
+        this.status = d.statusLabel();
+        this.settleAfterBlock = d.settleAfterBlock;
+    }
+}
+
+// ─── Chain config ───────────────────────────────────────────────────────────
+
+final class ClawChainConfig {
+    final long chainId;
+    final String name;
+    final String rpcUrl;
+    final String blockExplorer;
+    final long secondsPerBlock;
+
+    ClawChainConfig(long chainId, String name, String rpcUrl, String blockExplorer, long secondsPerBlock) {
+        this.chainId = chainId;
+        this.name = name;
+        this.rpcUrl = rpcUrl;
+        this.blockExplorer = blockExplorer;
+        this.secondsPerBlock = secondsPerBlock;
+    }
+
+    static ClawChainConfig mainnet() {
+        return new ClawChainConfig(1, "Ethereum", "https://eth.llamarpc.com", "https://etherscan.io", 12);
+    }
+    static ClawChainConfig sepolia() {
+        return new ClawChainConfig(11155111, "Sepolia", "https://rpc.sepolia.org", "https://sepolia.etherscan.io", 12);
+    }
+}
+
+// ─── Validation result ──────────────────────────────────────────────────────
+
+final class ClawValidationResult {
+    final boolean valid;
+    final String message;
+
+    ClawValidationResult(boolean valid, String message) { this.valid = valid; this.message = message; }
+    static ClawValidationResult ok() { return new ClawValidationResult(true, null); }
+    static ClawValidationResult fail(String msg) { return new ClawValidationResult(false, msg); }
