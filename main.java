@@ -955,3 +955,90 @@ final class ClawPostFeed {
         posts.add(0, p);
         while (posts.size() > maxSize) posts.remove(posts.size() - 1);
     }
+
+    void addAll(List<ClawPost> list) {
+        for (ClawPost p : list) add(p);
+    }
+
+    List<ClawPost> getRecent(int limit) {
+        return posts.stream().limit(limit).collect(Collectors.toList());
+    }
+
+    int size() { return posts.size(); }
+}
+
+// ─── Settlement split validator ─────────────────────────────────────────────
+
+final class ClawSettlementValidator {
+    static void validateSplit(BigInteger makerAmount, BigInteger takerAmount, BigInteger totalWei) {
+        if (makerAmount == null || takerAmount == null || totalWei == null)
+            throw new ClawOtcInvalidParamsException("amounts required");
+        if (makerAmount.add(takerAmount).compareTo(totalWei) != 0)
+            throw new ClawOtcInvalidParamsException("maker + taker must equal total");
+        if (makerAmount.signum() < 0 || takerAmount.signum() < 0)
+            throw new ClawOtcInvalidParamsException("amounts must be non-negative");
+    }
+}
+
+// ─── Retry policy ───────────────────────────────────────────────────────────
+
+final class ClawRetryPolicy {
+    final int maxAttempts;
+    final long delayMs;
+    final double backoffMultiplier;
+
+    ClawRetryPolicy(int maxAttempts, long delayMs, double backoffMultiplier) {
+        this.maxAttempts = maxAttempts;
+        this.delayMs = delayMs;
+        this.backoffMultiplier = backoffMultiplier;
+    }
+
+    long delayForAttempt(int attempt) {
+        return (long) (delayMs * Math.pow(backoffMultiplier, attempt));
+    }
+
+    static ClawRetryPolicy defaultPolicy() {
+        return new ClawRetryPolicy(3, 1000, 2.0);
+    }
+}
+
+// ─── Rate limiter (simple in-memory) ────────────────────────────────────────
+
+final class ClawRateLimiter {
+    private final int maxPerWindow;
+    private final long windowMs;
+    private final Map<String, List<Long>> hits = new ConcurrentHashMap<>();
+
+    ClawRateLimiter(int maxPerWindow, long windowMs) {
+        this.maxPerWindow = maxPerWindow;
+        this.windowMs = windowMs;
+    }
+
+    synchronized boolean allow(String key) {
+        long now = System.currentTimeMillis();
+        List<Long> list = hits.computeIfAbsent(key, k -> new ArrayList<>());
+        list.removeIf(t -> now - t > windowMs);
+        if (list.size() >= maxPerWindow) return false;
+        list.add(now);
+        return true;
+    }
+}
+
+// ─── Config loader (stub) ────────────────────────────────────────────────────
+
+final class ClawConfigLoader {
+    static String getRpcUrl() {
+        String env = System.getenv("CLAW_OTC_RPC_URL");
+        return env != null ? env : ClawOtcConfig.CLAW_OTC_RPC_DEFAULT;
+    }
+
+    static String getContractAddress() {
+        return System.getenv("CRABHUB_CONTRACT_ADDRESS");
+    }
+
+    static long getChainId() {
+        String env = System.getenv("CLAW_CHAIN_ID");
+        if (env != null) {
+            try {
+                return Long.parseLong(env);
+            } catch (NumberFormatException ignored) {}
