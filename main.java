@@ -1042,3 +1042,90 @@ final class ClawConfigLoader {
             try {
                 return Long.parseLong(env);
             } catch (NumberFormatException ignored) {}
+        }
+        return ClawOtcConfig.CLAW_CHAIN_ID_MAINNET;
+    }
+}
+
+// ─── More event types ───────────────────────────────────────────────────────
+
+final class ClawOtcCancelledEvent {
+    final String dealId;
+    final String by;
+    final long atBlock;
+    ClawOtcCancelledEvent(String dealId, String by, long atBlock) { this.dealId = dealId; this.by = by; this.atBlock = atBlock; }
+}
+
+final class ClawOtcDisputedEvent {
+    final String dealId;
+    final String disputer;
+    final long atBlock;
+    ClawOtcDisputedEvent(String dealId, String disputer, long atBlock) { this.dealId = dealId; this.disputer = disputer; this.atBlock = atBlock; }
+}
+
+final class ClawGovernorRotatedEvent {
+    final String previous;
+    final String next;
+    final long atBlock;
+    ClawGovernorRotatedEvent(String previous, String next, long atBlock) { this.previous = previous; this.next = next; this.atBlock = atBlock; }
+}
+
+final class ClawPlatformPausedEvent {
+    final String by;
+    final long atBlock;
+    ClawPlatformPausedEvent(String by, long atBlock) { this.by = by; this.atBlock = atBlock; }
+}
+
+final class ClawTreasurySweepEvent {
+    final String treasury;
+    final BigInteger amountWei;
+    final long atBlock;
+    ClawTreasurySweepEvent(String treasury, BigInteger amountWei, long atBlock) { this.treasury = treasury; this.amountWei = amountWei; this.atBlock = atBlock; }
+}
+
+// ─── UI state flags ─────────────────────────────────────────────────────────
+
+final class ClawUiState {
+    private boolean loading;
+    private String errorMessage;
+    private boolean connected;
+    private String selectedDealId;
+
+    boolean isLoading() { return loading; }
+    void setLoading(boolean v) { this.loading = v; }
+    String getErrorMessage() { return errorMessage; }
+    void setErrorMessage(String v) { this.errorMessage = v; }
+    boolean isConnected() { return connected; }
+    void setConnected(boolean v) { this.connected = v; }
+    String getSelectedDealId() { return selectedDealId; }
+    void setSelectedDealId(String v) { this.selectedDealId = v; }
+}
+
+// ─── Deal list sorter ────────────────────────────────────────────────────────
+
+final class ClawDealSorter {
+    static final Comparator<ClawDeal> BY_CREATED_DESC = (a, b) -> Long.compare(b.createdAt, a.createdAt);
+    static final Comparator<ClawDeal> BY_AMOUNT_DESC = (a, b) -> b.amountWei.compareTo(a.amountWei);
+    static final Comparator<ClawDeal> BY_SETTLE_AFTER_ASC = (a, b) -> Long.compare(a.settleAfterBlock, b.settleAfterBlock);
+
+    static void sort(List<ClawDeal> list, Comparator<ClawDeal> cmp) {
+        list.sort(cmp);
+    }
+}
+
+// ─── Profile cache with TTL ─────────────────────────────────────────────────
+
+final class ClawProfileCacheWithTtl {
+    private final Map<String, ClawProfile> cache = new ConcurrentHashMap<>();
+    private final Map<String, Long> expiry = new ConcurrentHashMap<>();
+    private final long ttlMs;
+
+    ClawProfileCacheWithTtl(long ttlMs) { this.ttlMs = ttlMs; }
+
+    void put(String addr, ClawProfile p) {
+        cache.put(addr, p);
+        expiry.put(addr, System.currentTimeMillis() + ttlMs);
+    }
+
+    ClawProfile get(String addr) {
+        Long exp = expiry.get(addr);
