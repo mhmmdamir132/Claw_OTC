@@ -1390,3 +1390,90 @@ final class ClawDealStatusDisplay {
             case 1: return new ClawDealStatusDisplay("Settled", "green", false, false, false);
             case 2: return new ClawDealStatusDisplay("Cancelled", "gray", false, false, false);
             case 3: return new ClawDealStatusDisplay("Disputed", "orange", false, false, false);
+            default: return new ClawDealStatusDisplay("Unknown", "gray", false, false, false);
+        }
+    }
+}
+
+// ─── Contract ABI method names (for encoding) ────────────────────────────────
+
+final class ClawAbiMethods {
+    static final String OPEN_OTC = "openOtcDeal";
+    static final String SETTLE_OTC = "settleOtcDeal";
+    static final String CANCEL_OTC = "cancelOtcDeal";
+    static final String DISPUTE_OTC = "disputeOtcDeal";
+    static final String REGISTER_PROFILE = "registerClawProfile";
+    static final String UPDATE_PROFILE = "updateClawProfile";
+    static final String POST_SOCIAL = "postSocial";
+    static final String FOLLOW = "follow";
+    static final String UNFOLLOW = "unfollow";
+}
+
+// ─── Gas estimates (stub) ────────────────────────────────────────────────────
+
+final class ClawGasEstimate {
+    static final long OPEN_DEAL_GAS = 250000L;
+    static final long SETTLE_DEAL_GAS = 150000L;
+    static final long CANCEL_DEAL_GAS = 80000L;
+    static final long POST_SOCIAL_GAS = 100000L;
+    static final long REGISTER_PROFILE_GAS = 120000L;
+}
+
+// ─── Time formatting ────────────────────────────────────────────────────────
+
+final class ClawTimeFormat {
+    static String blocksToApproxTime(long blocks, long secondsPerBlock) {
+        long seconds = blocks * secondsPerBlock;
+        if (seconds < 60) return seconds + "s";
+        if (seconds < 3600) return (seconds / 60) + "m";
+        if (seconds < 86400) return (seconds / 3600) + "h";
+        return (seconds / 86400) + "d";
+    }
+}
+
+// ─── Copy-on-write list wrapper ──────────────────────────────────────────────
+
+final class ClawSafeList<T> {
+    private final List<T> list = new CopyOnWriteArrayList<>();
+
+    void add(T item) { list.add(item); }
+    void remove(T item) { list.remove(item); }
+    List<T> snapshot() { return new ArrayList<>(list); }
+    int size() { return list.size(); }
+    void clear() { list.clear(); }
+}
+
+// ─── Pair tuple ──────────────────────────────────────────────────────────────
+
+final class ClawPair<A, B> {
+    final A first;
+    final B second;
+    ClawPair(A first, B second) { this.first = first; this.second = second; }
+    static <A, B> ClawPair<A, B> of(A a, B b) { return new ClawPair<>(a, b); }
+}
+
+// ─── Optional result ────────────────────────────────────────────────────────
+
+final class ClawResult<T> {
+    final T value;
+    final String error;
+    private ClawResult(T value, String error) { this.value = value; this.error = error; }
+    static <T> ClawResult<T> ok(T value) { return new ClawResult<>(value, null); }
+    static <T> ClawResult<T> err(String error) { return new ClawResult<>(null, error); }
+    boolean isOk() { return error == null; }
+    boolean isErr() { return error != null; }
+}
+
+// ─── More config constants ──────────────────────────────────────────────────
+
+final class ClawUiConfig {
+    static final int MAX_TAKER_ADDRESS_LEN = 42;
+    static final int MAX_HANDLE_LEN = 64;
+    static final int MAX_PAYLOAD_HASH_LEN = 66;
+    static final int DEAL_ID_DISPLAY_LEN = 18;
+}
+
+// ─── Health check ────────────────────────────────────────────────────────────
+
+final class ClawHealthCheck {
+    final boolean rpcConnected;
